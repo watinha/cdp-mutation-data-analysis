@@ -1,6 +1,7 @@
+import os
 import pandas as pd, sys
 from sklearn.metrics import confusion_matrix, classification_report
-from sklearn.model_selection import GroupShuffleSplit
+from sklearn.model_selection import StratifiedGroupKFold
 
 from pipeline import get_pipeline
 
@@ -41,7 +42,7 @@ df = pd.get_dummies(df, columns=string_columns)
 X = df.to_numpy()
 y = labels.values
 
-cv_strategy = GroupShuffleSplit(n_splits=3, random_state=42)
+cv_strategy = StratifiedGroupKFold(n_splits=3)
 
 y_true_all, y_pred_all = [], []
 for train_idx, test_idx in cv_strategy.split(X, y, groups):
@@ -50,7 +51,30 @@ for train_idx, test_idx in cv_strategy.split(X, y, groups):
     y_true_all.extend(y[test_idx])
     y_pred_all.extend(gridsearch_cv.predict(X[test_idx]))
 
+RESULTS_DIR = './03-cv-results'
+RESULTS_PATH = os.path.join(RESULTS_DIR, 'cv_results.xlsx')
+
 print(confusion_matrix(y_true_all, y_pred_all))
+
+report = classification_report(y_true_all, y_pred_all, digits=4, output_dict=True)
+report_df = pd.DataFrame(report).T
+
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
+if os.path.isfile(RESULTS_PATH):
+    existing = pd.read_excel(RESULTS_PATH, sheet_name=None, index_col=0)
+else:
+    existing = {}
+
+if classifier_name in existing:
+    existing[classifier_name] = pd.concat([existing[classifier_name], report_df])
+else:
+    existing[classifier_name] = report_df
+
+with pd.ExcelWriter(RESULTS_PATH, engine='openpyxl') as writer:
+    for sheet_name, sheet_df in existing.items():
+        sheet_df.to_excel(writer, sheet_name=sheet_name)
+
 print(classification_report(y_true_all, y_pred_all, digits=4))
 
 
