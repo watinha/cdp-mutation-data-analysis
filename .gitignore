@@ -1,4 +1,5 @@
 *.swp
 01-datasets/*.csv
+02-train-test/
 data/*
 __pycache__
