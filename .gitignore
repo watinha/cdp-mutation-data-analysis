@@ -1,3 +1,4 @@
 *.swp
 01-datasets/*.csv
 data/*
+__pycache__
