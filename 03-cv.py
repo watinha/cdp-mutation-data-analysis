@@ -1,8 +1,8 @@
 import pandas as pd, sys
-
+from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.model_selection import GroupShuffleSplit
 
 from pipeline import get_pipeline
-from sklearn.model_selection import GroupShuffleSplit, cross_validate
 
 
 classifier_name = sys.argv[1] if len(sys.argv) > 1 \
@@ -41,22 +41,16 @@ df = pd.get_dummies(df, columns=string_columns)
 X = df.to_numpy()
 y = labels.values
 
-gridsearch_cv = get_pipeline(classifier_name)
+cv_strategy = GroupShuffleSplit(n_splits=3, random_state=42)
 
-cv_strategy = GroupShuffleSplit(n_splits=5, random_state=42)
-cv_results = cross_validate(
-    gridsearch_cv, X, y,
-    groups=groups,
-    cv=cv_strategy,
-    scoring={
-        'precision': 'precision_macro',
-        'recall': 'recall_macro',
-        'f1_macro': 'f1_macro',
-        'f1_weighted': 'f1_weighted',
-    },
-    return_estimator=True,
-)
+y_true_all, y_pred_all = [], []
+for train_idx, test_idx in cv_strategy.split(X, y, groups):
+    gridsearch_cv = get_pipeline(classifier_name)
+    gridsearch_cv.fit(X[train_idx], y[train_idx])
+    y_true_all.extend(y[test_idx])
+    y_pred_all.extend(gridsearch_cv.predict(X[test_idx]))
 
-print(cv_results)
+print(confusion_matrix(y_true_all, y_pred_all))
+print(classification_report(y_true_all, y_pred_all, digits=4))
 
 
