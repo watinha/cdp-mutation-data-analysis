@@ -19,20 +19,24 @@ PARAM_GRIDS = {
         'classifier__max_depth': [None, 5, 10, 20],
         'classifier__min_samples_split': [2, 5, 10],
         'classifier__criterion': ['gini', 'entropy'],
+        'classifier__class_weight': ['balanced'],
     },
     'linear_svc': {
         'classifier__C': [0.01, 0.1, 1, 10],
         'classifier__max_iter': [5000],
+        'classifier__class_weight': ['balanced'],
     },
     'random_forest': {
         'classifier__n_estimators': [50, 100, 200],
         'classifier__max_depth': [None, 10, 20],
         'classifier__min_samples_split': [2, 5],
+        'classifier__class_weight': ['balanced'],
     },
     'gradient_boosting': {
         'classifier__n_estimators': [50, 100, 200],
         'classifier__learning_rate': [0.05, 0.1, 0.2],
         'classifier__max_depth': [3, 5, 7],
+        'classifier__class_weight': ['balanced'],
     },
 }
 
