@@ -5,6 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 
 CLASSIFIERS = {
@@ -12,6 +13,7 @@ CLASSIFIERS = {
     'linear_svc': LinearSVC,
     'random_forest': RandomForestClassifier,
     'gradient_boosting': GradientBoostingClassifier,
+    'knn': KNeighborsClassifier,
 }
 
 PARAM_GRIDS = {
@@ -33,10 +35,14 @@ PARAM_GRIDS = {
         'classifier__class_weight': ['balanced'],
     },
     'gradient_boosting': {
-        'classifier__n_estimators': [50, 100, 200],
+        'classifier__n_estimators': [3, 5, 10],
         'classifier__learning_rate': [0.05, 0.1, 0.2],
         'classifier__max_depth': [3, 5, 7],
-        'classifier__class_weight': ['balanced'],
+        #'classifier__class_weight': ['balanced'],
+    },
+    'knn': {
+        'classifier__n_neighbors': [3, 5, 7],
+        'classifier__weights': ['uniform', 'distance'],
     },
 }
 

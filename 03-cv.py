@@ -18,13 +18,13 @@ ROLES_OF_INTEREST = ['button', 'region', 'combobox', 'tab', # appeared in more t
 df = pd.read_csv(TRAIN_DATASET_PATH)
 
 df = df.dropna(subset=['mutation_role', 'mutation_xpath'])
-labels = df['mutation_role']
 groups = df['mutation_url']
 df['target_role'] = df['target_role'].fillna('none')
 
 df['mutation_role'] = df['mutation_role'].apply(
     lambda r: r if r in ROLES_OF_INTEREST else 'other'
 )
+labels = df['mutation_role']
 
 df = df.drop(columns=['mutation_role',
                       'mutation_xpath', 'target_xpath',
@@ -75,6 +75,6 @@ with pd.ExcelWriter(RESULTS_PATH, engine='openpyxl') as writer:
     for sheet_name, sheet_df in existing.items():
         sheet_df.to_excel(writer, sheet_name=sheet_name)
 
-print(classification_report(y_true_all, y_pred_all, digits=4))
+print(classification_report(y_true_all, y_pred_all, digits=3))
 
 
