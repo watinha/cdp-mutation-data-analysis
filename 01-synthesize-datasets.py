@@ -21,7 +21,7 @@ for url_folder in url_folders:
             file_path = os.path.join(DATA_DIR, url_folder, file)
             with open(file_path, "r") as f:
                 json_str = f.read()
-                [target, mutations] = ast.literal_eval(json_str)
+                [target, mutations, hover_img, event_img, key_img] = ast.literal_eval(json_str)
 
             event_name = file.split('-').pop()[:-5] 
             for mutation in mutations:
@@ -32,6 +32,11 @@ for url_folder in url_folders:
                 
                 for p in mutation:
                     row[f"mutation_{p}"] = mutation[p]
+
+                row["hover_img"] = hover_img
+                row["event_img"] = event_img
+                row["key_img"] = key_img
+                row["base_img"] = f'{DATA_DIR}/{url_folder}/screenshot.png'
 
                 dataset.append(row)
 
