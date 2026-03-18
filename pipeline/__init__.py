@@ -47,7 +47,7 @@ PARAM_GRIDS = {
 }
 
 
-def get_pipeline(classifier_name: str, cv: int = 3, scoring: str = 'f1_macro') -> GridSearchCV:
+def get_pipeline(classifier_name: str, cv: int = 3, scoring: str = 'balanced_accuracy') -> GridSearchCV:
     if classifier_name not in CLASSIFIERS:
         raise ValueError(
             f"Unknown classifier '{classifier_name}'. "
@@ -62,7 +62,7 @@ def get_pipeline(classifier_name: str, cv: int = 3, scoring: str = 'f1_macro') -
     ])
 
     param_grid = {
-        'selector__k': [10, 20, 'all'],
+        'selector__k': [20, 50, 100, 'all'],
         **PARAM_GRIDS[classifier_name],
     }
 
