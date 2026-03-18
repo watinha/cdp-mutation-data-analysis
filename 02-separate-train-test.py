@@ -16,6 +16,8 @@ for csv_filename in os.listdir(DATA_DIR):
 
   try:
     df = pd.read_csv(os.path.join(DATA_DIR, csv_filename))
+    if 'mutation_role' not in df: continue
+
     counts = df['mutation_role'].value_counts()
 
     if counts.empty:
