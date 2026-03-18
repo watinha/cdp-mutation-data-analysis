@@ -1,4 +1,4 @@
-import json, os, sys, ast, pandas as pd
+import json, os, sys, ast, pandas as pd, gc
 
 
 DATA_DIR = "./data"
@@ -14,8 +14,13 @@ for url_folder in url_folders:
     print(f"Processing {url_folder}...")
     files = os.listdir(os.path.join(DATA_DIR, url_folder))
 
+    if not os.path.exists(f'{OUTPUT_DIR}/{url_folder}'):
+        os.mkdir(f'{OUTPUT_DIR}/{url_folder}')
+    else:
+        continue
+
     dataset = []
-    for file in files:
+    for i_file, file in enumerate(files):
         if file.endswith(".json"):
             print(f"  - Processing {file}...")
             file_path = os.path.join(DATA_DIR, url_folder, file)
@@ -24,7 +29,23 @@ for url_folder in url_folders:
                 [target, mutations, hover_img, event_img, key_img] = ast.literal_eval(json_str)
 
             event_name = file.split('-').pop()[:-5] 
-            for mutation in mutations:
+
+            target_html = f'{OUTPUT_DIR}/{url_folder}/target-{i_file}.html'
+            with open(target_html, 'w') as f:
+                f.write(target['outerHTML'])
+            del target['outerHTML']
+            gc.collect()
+            target['outerHTML'] = target_html
+
+            for i_mutation, mutation in enumerate(mutations):
+
+                mutation_html = f'{OUTPUT_DIR}/{url_folder}/mutation-{i_file}-{event_name}-{i_mutation}.html'
+                with open(mutation_html, 'w') as f:
+                    f.write(mutation['outerHTML'])
+                del mutation['outerHTML']
+                gc.collect()
+                mutation['outerHTML'] = mutation_html
+
                 row = { 'event': event_name }
                 target_properties = list(target.keys())
                 for p in target_properties:
