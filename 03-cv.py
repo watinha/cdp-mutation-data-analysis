@@ -2,6 +2,7 @@ import os
 import pandas as pd, sys
 from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.model_selection import StratifiedShuffleSplit
+from imblearn.under_sampling import ClusterCentroids
 
 from pipeline import get_pipeline
 
@@ -14,31 +15,40 @@ ROLES_OF_INTEREST = [ 'button', 'tab', 'combobox', # appeared in more than 10 we
                       'presentation', 'region', 'link',
                       'menuitem', 'dialog' ]
 
+print('reading dataset')
 df = pd.read_csv(TRAIN_DATASET_PATH)
 
+print('droping na rows')
 df = df.dropna(subset=['mutation_role', 'mutation_xpath'])
 groups = df['mutation_url']
+
+print('filling na in target_role')
 df['target_role'] = df['target_role'].fillna('none')
 
+print('looking only into roles with expressive numbers...')
 df['mutation_role'] = df['mutation_role'].apply(
     lambda r: r if r in ROLES_OF_INTEREST else 'other'
 )
 labels = df['mutation_role']
 
+print('dropping columns which will not be used')
 df = df.drop(columns=['mutation_role',
                       'mutation_xpath', 'target_xpath',
                       'mutation_label', 'target_label',
                       'mutation_className', 'target_className',
                       'mutation_outerHTML', 'target_outerHTML',
                       'hover_img', 'event_img', 'key_img', 'base_img',
-                      'mutation_url', 'target_url' ])
+                      'mutation_url', 'target_url',
+                      'target_mutation_type', 'mutation_tagName',
+                      'target_mutation_attributeName', 'mutation_mutation_attributeName'])
 
 
-string_columns = ['event', 'target_role', 'target_tagName', 'mutation_tagName',
+string_columns = ['event', 'target_role',
+                  'target_tagName', #'mutation_tagName',
                   'target_parent_landmark', 'mutation_parent_landmark',
-                  'target_mutation_type', 'mutation_mutation_type',
-                  'target_mutation_attributeName', 'mutation_mutation_attributeName']
+                  'mutation_mutation_type']
 
+print('transforming string columns using get_dummies')
 df = pd.get_dummies(df, columns=string_columns)
 
 # FEATURE EXTRACTION
@@ -47,10 +57,14 @@ y = labels.values
 
 cv_strategy = StratifiedShuffleSplit(n_splits=10)
 
+undersampler = ClusterCentroids(sampling_strategy='majority', voting='hard')
+
+print('running CV strategy')
 y_true_all, y_pred_all = [], []
 for train_idx, test_idx in cv_strategy.split(X, y, groups):
+    X_res, y_res = undersampler.fit_resample(X[train_idx], y[train_idx])
     gridsearch_cv = get_pipeline(classifier_name)
-    gridsearch_cv.fit(X[train_idx], y[train_idx])
+    gridsearch_cv.fit(X_res, y_res)
     y_true_all.extend(y[test_idx])
     y_pred_all.extend(gridsearch_cv.predict(X[test_idx]))
 
