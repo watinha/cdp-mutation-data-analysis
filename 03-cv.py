@@ -39,15 +39,15 @@ df = df.drop(columns=['mutation_role', 'target_role',
                       'mutation_outerHTML', 'target_outerHTML',
                       'hover_img', 'event_img', 'key_img', 'base_img',
                       'mutation_url', 'target_url',
-                      #'target_parent_landmark', 'mutation_parent_landmark',
+                      'target_parent_landmark', 'mutation_parent_landmark',
                       'target_mutation_type',
-                      #'mutation_tagName', 'target_tagName',
+                      'mutation_tagName', 'target_tagName',
                       'target_mutation_attributeName', 'mutation_mutation_attributeName'])
 
 
 string_columns = [#'event', 'target_role',
-                  'target_tagName', 'mutation_tagName',
-                  'target_parent_landmark', 'mutation_parent_landmark',
+                  #'target_tagName', 'mutation_tagName',
+                  #'target_parent_landmark', 'mutation_parent_landmark',
                   'mutation_mutation_type']
 
 print('transforming string columns using get_dummies')
@@ -58,14 +58,20 @@ feature_names = df.columns.tolist()
 X = df.to_numpy()
 y = labels.values
 
-cv_strategy = StratifiedShuffleSplit(n_splits=20, random_state=42)
+cv_strategy = StratifiedShuffleSplit(n_splits=10, random_state=42)
 
 undersampler = ClusterCentroids(sampling_strategy='majority', voting='hard', random_state=42)
 
 print('running CV strategy')
 y_true_all, y_pred_all = [], []
 selected_features_rows = []
+i = 1
 for train_idx, test_idx in cv_strategy.split(X, y, groups):
+    print('')
+    print(f'--- running CV fold... {i}/{cv_strategy.get_n_splits()}')
+    print('')
+    i += 1
+
     X_res, y_res = undersampler.fit_resample(X[train_idx], y[train_idx])
     gridsearch_cv = get_pipeline(classifier_name)
     gridsearch_cv.fit(X_res, y_res)
