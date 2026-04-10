@@ -1,4 +1,4 @@
-import os, sys, pickle, pandas as pd
+import os, sys, pickle, numpy as np, pandas as pd
 
 from imblearn.under_sampling import ClusterCentroids
 
@@ -45,11 +45,15 @@ df = df.drop(columns=['mutation_role', 'target_role',
                       'target_mutation_attributeName', 'mutation_mutation_attributeName'])
 
 string_columns = ['mutation_mutation_type']
+numeric_columns = [c for c in df.columns if c not in string_columns]
 
-print('transforming string columns using get_dummies')
-df = pd.get_dummies(df, columns=string_columns)
+ENCODER_PATH = './03-cv-results/encoder.pkl'
+print(f'loading encoder from {ENCODER_PATH}')
+with open(ENCODER_PATH, 'rb') as f:
+    encoder = pickle.load(f)
 
-X = df.to_numpy()
+X_cat = encoder.transform(df[string_columns])
+X = np.hstack([df[numeric_columns].to_numpy(), X_cat])
 y = labels.values
 
 print('undersampling majority class')
@@ -70,3 +74,5 @@ model_path = os.path.join(OUTPUT_DIR, f'{classifier_name}.pkl')
 with open(model_path, 'wb') as f:
     pickle.dump(gridsearch_cv.best_estimator_, f)
 print(f'model saved to {model_path}')
+
+
