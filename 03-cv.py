@@ -1,7 +1,7 @@
-import os
-import pandas as pd, sys
+import os, pickle, numpy as np, pandas as pd, sys
 from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.preprocessing import OneHotEncoder
 from imblearn.under_sampling import ClusterCentroids
 
 from pipeline import get_pipeline
@@ -45,17 +45,31 @@ df = df.drop(columns=['mutation_role', 'target_role',
                       'target_mutation_attributeName', 'mutation_mutation_attributeName'])
 
 
-string_columns = [#'event', 'target_role',
-                  #'target_tagName', 'mutation_tagName',
-                  #'target_parent_landmark', 'mutation_parent_landmark',
-                  'mutation_mutation_type']
+string_columns = ['mutation_mutation_type']
+numeric_columns = [c for c in df.columns if c not in string_columns]
 
-print('transforming string columns using get_dummies')
-df = pd.get_dummies(df, columns=string_columns)
+RESULTS_DIR = './03-cv-results'
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
+encoder_path = os.path.join(RESULTS_DIR, 'encoder.pkl')
+if os.path.isfile(encoder_path):
+    print(f'loading encoder from {encoder_path}')
+    with open(encoder_path, 'rb') as f:
+        encoder = pickle.load(f)
+    X_cat = encoder.transform(df[string_columns])
+else:
+    print('fitting OneHotEncoder on string columns')
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    X_cat = encoder.fit_transform(df[string_columns])
+    with open(encoder_path, 'wb') as f:
+        pickle.dump(encoder, f)
+    print(f'encoder saved to {encoder_path}')
+
+cat_feature_names = encoder.get_feature_names_out(string_columns).tolist()
 
 # FEATURE EXTRACTION
-feature_names = df.columns.tolist()
-X = df.to_numpy()
+X = np.hstack([df[numeric_columns].to_numpy(), X_cat])
+feature_names = numeric_columns + cat_feature_names
 y = labels.values
 
 cv_strategy = StratifiedShuffleSplit(n_splits=10, random_state=42)
@@ -86,7 +100,6 @@ for train_idx, test_idx in cv_strategy.split(X, y, groups):
     full_mask[vt_mask] = sel_mask
     selected_features_rows.append(full_mask)
 
-RESULTS_DIR = './03-cv-results'
 RESULTS_PATH = os.path.join(RESULTS_DIR, 'cv_results.xlsx')
 RESULTS_ALL_PRED = os.path.join(RESULTS_DIR, 'cv_all_preds.csv')
 
@@ -94,8 +107,6 @@ print(confusion_matrix(y_true_all, y_pred_all))
 
 report = classification_report(y_true_all, y_pred_all, digits=4, output_dict=True)
 report_df = pd.DataFrame(report).T
-
-os.makedirs(RESULTS_DIR, exist_ok=True)
 
 SELECTED_FEATURES_PATH = os.path.join(RESULTS_DIR, 'selected_features.xlsx')
 
