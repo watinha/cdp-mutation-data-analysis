@@ -11,21 +11,50 @@ META_COLUMNS = ['mutation_url', 'mutation_xpath', 'target_xpath',
                 'target_top', 'target_left', 'target_height', 'target_width',
                 'mutation_top', 'mutation_left', 'mutation_height', 'mutation_width']
 
-PROBABILITY_THRESHOLD = 0.5
+PROBABILITY_THRESHOLD = 0.3
+
 IMG_COLUMNS = ['event_img', 'key_img', 'hover_img', 'base_img']
 
 
 def draw_annotation(img_path, top, left, height, width, output_path):
     img = Image.open(img_path).convert('RGBA')
+    img_w, img_h = img.size
+
+    if height == 0 or width == 0 or top > img_h or top < 0 or left > img_w or left < 0: return
+
     overlay = Image.new('RGBA', img.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
+    # Get image dimensions
+    l = int(left)
+    t = int(top)
+    r = int(left + width)
+    b = int(top + height)
+    # Draw rectangle annotation
     draw.rectangle(
-        [left, top, left + width, top + height],
+        [l, t, r, b],
         outline=(255, 0, 0, 255),
         width=3,
     )
     annotated = Image.alpha_composite(img, overlay).convert('RGB')
     annotated.save(output_path)
+
+    try:
+        img_w, img_h = img.size
+        l = max(0, int(left))
+        t = max(0, int(top))
+        r = min(img_w, int(left + width))
+        b = min(img_h, int(top + height))
+        if r > l and b > t:
+            # Reopen original (RGB) for crop to avoid alpha issues
+            orig = Image.open(img_path).convert('RGB')
+            cropped = orig.crop((l, t, r, b))
+            base, ext = os.path.splitext(output_path)
+            target_out = f"{base}.target.png"
+            cropped.save(target_out)
+    except Exception:
+        # If cropping fails, skip without raising to avoid stopping the report generation
+        print(f' - {output_path}: did not cut')
+        pass
 
 
 os.makedirs(REPORT_DIR, exist_ok=True)
@@ -45,11 +74,14 @@ for csv_filename in os.listdir(RESULTS_DIR):
     # Add a predicted_role column indicating the role with highest probability
     filtered_df['predicted_role'] = filtered_df[role_columns].idxmax(axis=1)
 
+    # Drop rows where the predicted role is "other"
+    filtered_df = filtered_df[filtered_df['predicted_role'] != 'other'].copy()
+
     output_dir = os.path.join(REPORT_DIR, os.path.splitext(csv_filename)[0])
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, 'predicted_roles.csv')
     filtered_df.to_csv(output_path, index=False)
-    print(f'{csv_filename}: {len(filtered_df)}/{len(df)} rows kept')
+    print(f'{csv_filename}: {len(filtered_df)}/{len(df)} rows kept ("other" roles excluded)')
 
     for i, row in enumerate(filtered_df.itertuples(index=False)):
         top = row.mutation_top
